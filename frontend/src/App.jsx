@@ -1,3 +1,4 @@
+// src/App.jsx
 import React, { useState, useMemo, useCallback } from 'react';
 import Home from './pages/Home';
 import Input from './pages/Input';
@@ -12,12 +13,18 @@ import { makeT } from './i18n';
 export default function App() {
   const [route, setRoute] = useState('home');
   const [lang, setLang] = useState('en');
+  
+  
   const [store, setStore] = useState({
-    agencyName: '', agencySite: '', agencyDesc: '',
-    brandName: '', brandDesc: '',
-    igSelected: ['@solene.studio', '@maximerune'],
-    ytSelected: ['@brieflab'],
-    igWindow: '24h', ytWindow: '3d',
+    agencyName: '',
+    agencySite: '',
+    agencyDesc: '',
+    brandName: '',
+    brandDesc: '',
+    selectedInfluencers: [],
+    analysisRange: '1w',
+    jobId: null,          // added for SSE
+    analysisResults: null, // added to hold final data
   });
   const [reveal, setReveal] = useState(false);
   const t = useMemo(() => makeT(lang), [lang]);

@@ -1,86 +1,96 @@
 import React from 'react';
 
+// All the helper components (MassiveText, Badge, Btn, etc.) remain exactly as you defined them.
+// I've kept them at the bottom of the file exactly as you wrote.
+
 export default function Input({ t, setRoute, store, setStore, triggerReveal }) {
   const next = () => triggerReveal(() => setRoute('select'), true);
   const back = () => triggerReveal(() => setRoute('home'), false);
 
   return (
-    <section className="relative w-full h-full overflow-hidden page-in">
-      <MassiveText opacity={0.02}>BRIEF</MassiveText>
-
-      <div className="absolute inset-0 z-10 px-8 md:px-14 pt-24 pb-16 flex flex-col">
-        <div className="max-w-[1400px] w-full mx-auto flex items-end justify-between mb-8">
-          <div>
-            <Badge>{t('input.kicker')}</Badge>
-            <h1 className="font-display leading-[0.82] tracking-tight mt-3">
-              <div className="text-5xl md:text-7xl title-solid-white">{t('input.title')}</div>
-              <div className="text-5xl md:text-7xl title-outline -mt-1">{t('input.title2')}</div>
-            </h1>
-            <p className="mt-4 max-w-xl text-sm md:text-base text-white/50">{t('input.lede')}</p>
+    // 🔥 FIX: outer wrapper with fixed viewport height + no overflow
+    <div className="relative h-screen overflow-hidden">
+      <div className="relative z-10 px-6 md:px-10 py-8 md:py-12 h-full">
+        <div className="max-w-[1400px] mx-auto h-full flex flex-col">
+          {/* Header section */}
+          <div className="flex items-end justify-between mb-8">
+            <div>
+              <Badge>{t('input.kicker')}</Badge>
+              <h1 className="font-display leading-[0.82] tracking-tight mt-3">
+                <div className="text-5xl md:text-7xl title-solid-white">{t('input.title')}</div>
+                <div className="text-5xl md:text-7xl title-outline -mt-1">{t('input.title2')}</div>
+              </h1>
+            </div>
+            <div className="hidden md:flex items-center gap-3 font-mono text-[10px] tracking-[0.28em] uppercase text-white/40">
+              <span>STEP</span>
+              <span className="text-white text-2xl font-display">01</span>
+              <span className="text-white/30">/ 04</span>
+            </div>
           </div>
-          <div className="hidden md:flex items-center gap-3 font-mono text-[10px] tracking-[0.28em] uppercase text-white/40">
-            <span>STEP</span>
-            <span className="text-white text-2xl font-display">01</span>
-            <span className="text-white/30">/ 04</span>
+
+          {/* Form grid (two cards) - now uses flex-1 + min-h-0 to avoid overflow */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 flex-1 min-h-0">
+            <Card label={t('input.agency.title')} index="01">
+              <Field
+                label={t('input.agency.name')}
+                value={store.agencyName}
+                onChange={(v) => setStore({ ...store, agencyName: v })}
+                placeholder="Mirage Studio"
+              />
+              <Field
+                label={t('input.agency.site')}
+                value={store.agencySite}
+                onChange={(v) => setStore({ ...store, agencySite: v })}
+                placeholder="mirage.studio"
+              />
+              <Field
+                label={t('input.agency.desc')}
+                value={store.agencyDesc}
+                onChange={(v) => setStore({ ...store, agencyDesc: v })}
+                placeholder="Influencer-led campaigns for emerging beauty brands"
+                multiline
+              />
+            </Card>
+
+            <Card label={t('input.brand.title')} index="02" featured>
+              <Field
+                label={`${t('input.brand.name')} *`}
+                value={store.brandName}
+                onChange={(v) => setStore({ ...store, brandName: v })}
+                placeholder="Halo Skincare"
+                hint={t('input.required')}
+              />
+              <Field
+                label={t('input.brand.desc')}
+                value={store.brandDesc}
+                onChange={(v) => setStore({ ...store, brandDesc: v })}
+                placeholder="Plant-based skincare for Gen-Z"
+                multiline
+              />
+              <FileField label={t('input.brand.image')} cta={t('input.brand.upload')} />
+            </Card>
           </div>
-        </div>
 
-        <div className="max-w-[1400px] w-full mx-auto grid grid-cols-1 md:grid-cols-2 gap-5 flex-1 min-h-0">
-          <Card label={t('input.agency.title')} index="01">
-            <Field
-              label={t('input.agency.name')}
-              value={store.agencyName}
-              onChange={(v) => setStore({ ...store, agencyName: v })}
-              placeholder="Mirage Studio"
-            />
-            <Field
-              label={t('input.agency.site')}
-              value={store.agencySite}
-              onChange={(v) => setStore({ ...store, agencySite: v })}
-              placeholder="mirage.studio"
-            />
-            <Field
-              label={t('input.agency.desc')}
-              value={store.agencyDesc}
-              onChange={(v) => setStore({ ...store, agencyDesc: v })}
-              placeholder="Influencer-led campaigns for emerging beauty brands"
-              multiline
-            />
-          </Card>
-
-          <Card label={t('input.brand.title')} index="02" featured>
-            <Field
-              label={`${t('input.brand.name')} *`}
-              value={store.brandName}
-              onChange={(v) => setStore({ ...store, brandName: v })}
-              placeholder="Halo Skincare"
-              hint={t('input.required')}
-            />
-            <Field
-              label={t('input.brand.desc')}
-              value={store.brandDesc}
-              onChange={(v) => setStore({ ...store, brandDesc: v })}
-              placeholder="Plant-based skincare for Gen-Z"
-              multiline
-            />
-            <FileField label={t('input.brand.image')} cta={t('input.brand.upload')} />
-          </Card>
-        </div>
-
-        <div className="max-w-[1400px] w-full mx-auto mt-6 flex items-center justify-between">
-          <Btn variant="ghost" size="md" onClick={back} icon={null}>
-            <ArrowLeft /> {t('select.back')}
-          </Btn>
-          <Btn onClick={next} icon={<ArrowRight />}>
-            {t('input.next')}
-          </Btn>
+          {/* Navigation buttons */}
+          <div className="mt-6 flex items-center justify-between">
+            <Btn variant="ghost" size="md" onClick={back} icon={null}>
+              <ArrowLeft /> {t('select.back')}
+            </Btn>
+            <Btn onClick={next} icon={<ArrowRight />}>
+              {t('input.next')}
+            </Btn>
+          </div>
         </div>
       </div>
-    </section>
+    </div>
   );
 }
 
-// ----- helper components (same as your original but exported locally) -----
+// ------------------------------------------------------------------
+// Everything below here is exactly your original helper components.
+// (Card, Field, FileField, Btn, ArrowRight, ArrowLeft, Badge, MassiveText)
+// ------------------------------------------------------------------
+
 function Card({ label, index, children, featured }) {
   return (
     <div

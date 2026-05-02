@@ -1208,12 +1208,19 @@
     },
     {
       "rank": "100",
-      "nom": "Rahma Ben Aissa 👠@rahmabenaissa",
-      "handler": "rahmabenaissa",
-      "followers": 616500,
-      "followers_text": "616.5K",
-      "engagement_rate": "2.68%",
-      "instagram_url": "https://instagram.com/rahmabenaissa"
+      "nom": "Ghaith Ouerdiane Bacha",
+      "handler": "gooba_official",
+      "followers": 589000,
+      "followers_text": "589k",
+      "engagement_rate": "13.5%",
+      "instagram_url": "https://www.instagram.com/gooba_official/",
+      "dominating_age_group": "25-34",
+      "audience_gender": {
+      "female": "33.3%",
+      "male": "66.7%"
     }
-  ]
+
+    }
+    ]
+  
 }
