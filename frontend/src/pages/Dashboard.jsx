@@ -5,43 +5,48 @@ import Btn from '../components/ui/Btn';
 import MassiveText from '../components/ui/MassiveText';
 import { ArrowLeft } from '../components/ui/Icons';
 
-// Helper: aggregate comment_analysis across multiple influencers
 function aggregateAnalysis(results) {
   if (!results || results.length === 0) return null;
   let totalComments = 0;
   let totalPositive = 0;
   let totalEmoji = 0;
-  let totalCongrats = 0;
   let totalQuestions = 0;
   let totalGaps = 0;
-  let allFlags = [];
-  let allRecos = [];
+  let allSignals = [];
+  let allStories = [];
+  let allTrends = [];
+  let allFreq = [];
 
   for (const r of results) {
     const ca = r.comment_analysis || {};
     totalComments += ca.total_comments || 0;
-    totalPositive += (ca.positive_pct || 0) * (ca.total_comments || 1);
-    totalEmoji += (ca.categories?.emoji_only?.count || 0);
-    totalCongrats += (ca.categories?.congrats?.count || 0);
-    totalQuestions += (ca.categories?.question?.count || 0);
-    totalGaps += (ca.categories?.product_gap?.count || 0);
-    if (ca.flagged_signals) allFlags.push(...ca.flagged_signals);
-    if (r.ai_recommendation?.recommendations) allRecos.push(...r.ai_recommendation.recommendations);
+    const pos = ca.sentiment_totals?.positive || 0;
+    totalPositive += pos;
+    totalEmoji += ca.category_totals?.hype_emoji || 0;
+    totalQuestions += ca.category_totals?.question || 0;
+    totalGaps += ca.category_totals?.needs_support || 0;
+    if (ca.flagged_signals) allSignals.push(...ca.flagged_signals);
+    const ai = ca.ai_summary || {};
+    if (ai.story) allStories.push(ai.story);
+    if (ai.trends) allTrends.push(...ai.trends);
+    if (ai.frequent_topics) allFreq.push(...ai.frequent_topics);
   }
-  const avgPositive = totalComments ? Math.round(totalPositive / totalComments) : 0;
-
+  const avgPositive = totalComments ? Math.round((totalPositive / totalComments) * 100) : 0;
   return {
     avgPositive,
     totalComments,
-    categoryBreakdown: { emoji: totalEmoji, congrats: totalCongrats, questions: totalQuestions, gaps: totalGaps },
-    flaggedSignals: allFlags.slice(0, 5),
-    topRecommendations: [...new Set(allRecos)].slice(0, 3),
+    categoryBreakdown: { emoji: totalEmoji, questions: totalQuestions, gaps: totalGaps },
+    flaggedSignals: allSignals.slice(0, 5),
+    topStory: allStories[0] || "No story yet. Run an analysis.",
+    topTrends: [...new Set(allTrends)].slice(0, 3),
+    topFrequent: [...new Set(allFreq)].slice(0, 3),
   };
 }
 
 export default function Dashboard({ t, setRoute, store, setStore, triggerReveal }) {
   const results = store.analysisResults;
   const [expandedPosts, setExpandedPosts] = useState({});
+  const [showAIInsights, setShowAIInsights] = useState(false);
 
   const togglePost = (shortcode) => {
     setExpandedPosts(prev => ({ ...prev, [shortcode]: !prev[shortcode] }));
@@ -64,6 +69,7 @@ export default function Dashboard({ t, setRoute, store, setStore, triggerReveal 
   }
 
   const aggregated = aggregateAnalysis(results);
+  const firstInfluencer = results[0];
 
   return (
     <div className="relative h-screen overflow-hidden page-in">
@@ -92,9 +98,9 @@ export default function Dashboard({ t, setRoute, store, setStore, triggerReveal 
             </div>
           </div>
 
-          {/* Main grid: left = posts, right = analysis + recommendations */}
+          {/* Main grid */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Left column – influencer posts (2/3 width) */}
+            {/* Left column – posts and comments */}
             <div className="lg:col-span-2 space-y-6">
               {results.map((influencerData, idx) => {
                 const totalComments = influencerData.brand_mention_timeline?.reduce(
@@ -191,13 +197,13 @@ export default function Dashboard({ t, setRoute, store, setStore, triggerReveal 
               })}
             </div>
 
-            {/* Right column – aggregated analysis & recommendations */}
+            {/* Right column – analysis cards + AI Insights button */}
             <div className="space-y-6">
-              {/* Sentiment card */}
+              {/* Quick stats */}
               <div className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-md p-5">
                 <div className="font-mono text-[10px] tracking-[0.28em] uppercase text-white/40 mb-2">OVERALL SENTIMENT</div>
                 <div className="text-6xl font-display text-brand">{aggregated?.avgPositive || 0}%</div>
-                <div className="text-white/40 text-sm mt-1">Positive engagement rate</div>
+                <div className="text-white/40 text-sm mt-1">Positive engagement</div>
                 <div className="mt-4 h-1.5 w-full rounded-full bg-white/10 overflow-hidden">
                   <div className="h-full bg-emerald-400 rounded-full" style={{ width: `${aggregated?.avgPositive || 0}%` }} />
                 </div>
@@ -207,16 +213,12 @@ export default function Dashboard({ t, setRoute, store, setStore, triggerReveal 
                     <div className="font-mono text-[9px] tracking-[0.2em] text-white/40">EMOJI ONLY</div>
                   </div>
                   <div className="rounded-lg bg-white/5 p-2">
-                    <div className="font-display text-xl">{aggregated?.categoryBreakdown?.congrats || 0}</div>
-                    <div className="font-mono text-[9px] tracking-[0.2em] text-white/40">CONGRATS</div>
-                  </div>
-                  <div className="rounded-lg bg-white/5 p-2">
                     <div className="font-display text-xl">{aggregated?.categoryBreakdown?.questions || 0}</div>
                     <div className="font-mono text-[9px] tracking-[0.2em] text-white/40">QUESTIONS</div>
                   </div>
                   <div className="rounded-lg bg-white/5 p-2">
                     <div className="font-display text-xl text-brand">{aggregated?.categoryBreakdown?.gaps || 0}</div>
-                    <div className="font-mono text-[9px] tracking-[0.2em] text-white/40">PRODUCT GAPS</div>
+                    <div className="font-mono text-[9px] tracking-[0.2em] text-white/40">NEEDS SUPPORT</div>
                   </div>
                 </div>
               </div>
@@ -236,31 +238,68 @@ export default function Dashboard({ t, setRoute, store, setStore, triggerReveal 
                 </div>
               )}
 
-              {/* AI Verdict + 3 Plays */}
-              {aggregated?.topRecommendations?.length > 0 && (
-                <div className="rounded-2xl border border-brand/40 bg-gradient-to-b from-brand/[0.08] to-white/[0.02] backdrop-blur-md p-5 shadow-glow">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-brand blink"></span>
-                    <div className="font-mono text-[10px] tracking-[0.28em] uppercase text-brand">AI VERDICT</div>
+              {/* ✨ BLUE BUTTON – See AI Insights */}
+              <button
+                onClick={() => setShowAIInsights(!showAIInsights)}
+                className="w-full py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 transition text-white font-bold flex items-center justify-center gap-2 shadow-lg"
+              >
+                {showAIInsights ? 'Hide AI Insights' : '✨ See AI Insights'}
+              </button>
+
+              {/* AI Insights panel (conditionally shown) */}
+              {showAIInsights && (
+                <div className="rounded-2xl border border-blue-500/40 bg-gradient-to-b from-blue-900/20 to-black/40 backdrop-blur-md p-5 shadow-glow animate-fadeIn">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></span>
+                    <div className="font-mono text-[10px] tracking-[0.28em] uppercase text-blue-300">AI Deep Analysis</div>
                   </div>
-                  <div className="font-display text-2xl tracking-tight uppercase mb-1">3 Plays</div>
-                  <div className="text-[12px] text-white/70 mb-4">
-                    {results[0]?.ai_recommendation?.verdict || 'Actionable insights from comment analysis'}
+
+                  {/* Storytelling text */}
+                  <div className="text-white/90 text-sm leading-relaxed mb-4">
+                    {aggregated?.topStory || firstInfluencer?.comment_analysis?.ai_summary?.story || "No story generated yet."}
                   </div>
-                  <div className="flex flex-col gap-2.5">
-                    {aggregated.topRecommendations.map((rec, idx) => (
-                      <div key={idx} className="rounded-xl border border-white/15 bg-black/30 p-3">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="font-mono text-[8px] tracking-[0.3em] uppercase text-brand">
-                            {idx === 0 ? 'AMPLIFY' : idx === 1 ? 'REPLY' : 'WATCH'}
-                          </span>
-                          <span className="font-display text-lg text-white/30">0{idx+1}</span>
-                        </div>
-                        <div className="font-display text-sm tracking-tight uppercase leading-tight mb-1">{rec.slice(0, 60)}</div>
-                        <div className="text-[11px] text-white/50 leading-snug">{rec}</div>
+
+                  {/* Trends and frequent topics */}
+                  <div className="grid grid-cols-2 gap-3 mb-3 text-xs">
+                    <div className="bg-white/5 rounded-lg p-2">
+                      <div className="font-mono text-[9px] text-blue-300 mb-1">📈 TRENDS</div>
+                      <ul className="list-disc list-inside text-white/70 space-y-0.5">
+                        {(aggregated?.topTrends || []).map((t, i) => <li key={i}>{t}</li>)}
+                        {(!aggregated?.topTrends || aggregated.topTrends.length === 0) && <li>No trends detected</li>}
+                      </ul>
+                    </div>
+                    <div className="bg-white/5 rounded-lg p-2">
+                      <div className="font-mono text-[9px] text-blue-300 mb-1">🔁 FREQUENT TOPICS</div>
+                      <ul className="list-disc list-inside text-white/70 space-y-0.5">
+                        {(aggregated?.topFrequent || []).map((f, i) => <li key={i}>{f}</li>)}
+                        {(!aggregated?.topFrequent || aggregated.topFrequent.length === 0) && <li>No frequent topics</li>}
+                      </ul>
+                    </div>
+                  </div>
+
+                  {/* Most liked comment highlight */}
+                  {firstInfluencer?.comment_analysis?.most_liked_comments?.[0] && (
+                    <div className="mt-2 p-2 rounded-lg bg-white/10 border border-white/20">
+                      <div className="font-mono text-[9px] text-yellow-300 mb-1">🔥 MOST LIKED COMMENT</div>
+                      <p className="text-sm text-white/90 italic">“{firstInfluencer.comment_analysis.most_liked_comments[0].text}”</p>
+                      <span className="text-[10px] text-white/40">❤️ {firstInfluencer.comment_analysis.most_liked_comments[0].likes} likes</span>
+                    </div>
+                  )}
+
+                  {/* Recommendations */}
+                  {firstInfluencer?.comment_analysis?.ai_summary?.recommendations?.length > 0 && (
+                    <div className="mt-3 pt-2 border-t border-blue-500/30">
+                      <div className="font-mono text-[9px] text-blue-300 mb-2">💡 RECOMMENDATIONS</div>
+                      <div className="space-y-2">
+                        {firstInfluencer.comment_analysis.ai_summary.recommendations.map((rec, idx) => (
+                          <div key={idx} className="flex items-start gap-2 text-xs text-white/80">
+                            <span className="text-blue-400 font-bold">{idx+1}.</span>
+                            <span>{rec}</span>
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

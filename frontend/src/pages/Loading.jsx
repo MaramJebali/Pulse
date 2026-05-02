@@ -8,58 +8,129 @@ export default function Loading({ t, setRoute, store, setStore, triggerReveal })
   const [pct, setPct] = useState(0);
   const [error, setError] = useState(null);
   const [simulating, setSimulating] = useState(false);
+  const [thinking, setThinking] = useState(false);
   const eventSourceRef = useRef(null);
   const mockIntervalRef = useRef(null);
+  const thinkingTimeoutRef = useRef(null);
+
+  // Helper: add a step with optional thinking animation
+  const addStep = (text, isThinking = false) => {
+    setSteps(prev => [...prev, { text, timestamp: Date.now(), isThinking }]);
+    if (isThinking) {
+      setThinking(true);
+      if (thinkingTimeoutRef.current) clearTimeout(thinkingTimeoutRef.current);
+      thinkingTimeoutRef.current = setTimeout(() => setThinking(false), 2000);
+    }
+  };
+
+  // Helper: simulate a realistic analysis flow with LLM “thinking” moments
+  const startSimulation = () => {
+    setSimulating(true);
+    const totalComments = 353; // from your results.json
+    const batches = Math.ceil(totalComments / 15); // 24 batches
+    const mockSteps = [
+      { text: '🔍 Loading Instagram comments from pre‑saved dataset...', delay: 600, progress: 5 },
+      { text: `📦 Found ${totalComments} comments. Batching into ${batches} groups for LLM processing...`, delay: 800, progress: 10 },
+      { text: '🧠 Initialising Groq LLM (llama-3.3-70b-versatile)...', delay: 1000, progress: 15 },
+      { text: '🤔 Thinking: analysing comment patterns...', delay: 1200, progress: 18, isThinking: true },
+    ];
+
+    // Generate batch steps dynamically
+    for (let i = 1; i <= batches; i++) {
+      const isLastBatch = i === batches;
+      mockSteps.push({
+        text: `📤 Sending batch ${i}/${batches} to Groq LLM...`,
+        delay: i === 1 ? 400 : 300,
+        progress: 15 + Math.floor((i / batches) * 70),
+      });
+      mockSteps.push({
+        text: `🤖 LLM classifying batch ${i}... (${Math.min(i * 15, totalComments)} comments processed)`,
+        delay: 600,
+        progress: 15 + Math.floor((i / batches) * 70) + 2,
+        isThinking: true,
+      });
+      if (!isLastBatch) {
+        mockSteps.push({
+          text: `⏳ Rate‑limit pause (0.5s) – staying within free tier...`,
+          delay: 500,
+          progress: 15 + Math.floor((i / batches) * 70) + 3,
+        });
+      }
+    }
+
+    mockSteps.push(
+      { text: '📊 Aggregating categories & sentiments...', delay: 800, progress: 88 },
+      { text: '✨ Generating AI summary (story, trends, recommendations)...', delay: 1200, progress: 94, isThinking: true },
+      { text: '🎯 Finalising insights for dashboard...', delay: 600, progress: 98 },
+      { text: '✅ Analysis complete! Redirecting to dashboard...', delay: 1000, progress: 100 }
+    );
+
+    let idx = 0;
+    const runNext = () => {
+      if (idx >= mockSteps.length) {
+        // Simulation finished – create enriched mock result
+        const mockResult = [{
+          profile: 'gooba_official',
+          posts_scanned: 7,
+          relevant_posts_found: 2,
+          brand_mention_timeline: [
+            {
+              shortcode: 'demo_gooba_1',
+              url: 'https://instagram.com/p/demo_gooba_1',
+              caption: 'ألو ألو … Rollo بين وقتين Rollo 🎶🎶',
+              likes: 20610,
+              comments_count: 346,
+              llm_classification: { relevant: true, confidence: 'high' },
+              comments: [{ owner: 'user1', text: 'Alooo rollo 🔥🔥', timestamp: new Date().toISOString(), likes: 0 }]
+            }
+          ],
+          comment_analysis: {
+            total_comments: totalComments,
+            category_totals: { question: 23, praise_influencer: 89, praise_product: 12, complaint: 2, buying_intent: 5, hype_emoji: 287, call_to_action: 41, off_topic: 15, needs_support: 8 },
+            sentiment_totals: { positive: 388, neutral: 71, negative: 8 },
+            most_liked_comments: [{ likes: 62, text: "J'adore ton français gbaw ❤️" }],
+            flagged_signals: [{ comment: { text: "Ye5i mouch heki l’INSAT" }, reason: "Off‑topic" }],
+            ai_summary: {
+              summary: "67% positive, but only 2.5% product‑specific praise – strong hype, weak product recall.",
+              trends: ["🔥 61% of comments are pure hype emojis", "❓ 23 questions about availability / price", "👤 Influencer praise (19%) outweighs product mentions (2.5%)"],
+              frequent_topics: ["Emoji‑only hype", "Influencer appreciation"],
+              story: "The campaign generated massive emoji-driven hype, but only 12 comments praised the product itself. Most liked comments celebrate the influencer, not the snack. 23 users asked practical questions – a clear signal to improve the brief.",
+              recommendations: [
+                "📌 Pin a comment answering the most common price/availability question",
+                "✏️ Add a product‑focused call‑to‑action in the next post",
+                "🎥 Create a short video answering top questions"
+              ]
+            }
+          },
+          ai_recommendation: {}
+        }];
+        setStore(prev => ({ ...prev, analysisResults: mockResult }));
+        setPct(100);
+        setTimeout(() => triggerReveal(() => setRoute('dashboard'), true), 1000);
+        return;
+      }
+
+      const step = mockSteps[idx];
+      addStep(step.text, step.isThinking);
+      setPct(step.progress);
+      idx++;
+      const nextDelay = step.delay + (step.isThinking ? 800 : 0);
+      mockIntervalRef.current = setTimeout(runNext, nextDelay);
+    };
+
+    runNext();
+  };
 
   useEffect(() => {
     const jobId = store.jobId;
 
-    // If no jobId, simulate the analysis (so the page doesn't stay blank)
+    // No jobId → simulation mode
     if (!jobId) {
-      console.warn('No jobId found – simulating analysis for demo');
-      setSimulating(true);
-      const mockSteps = [
-        'Connecting to Instagram API...',
-        'Resolving influencer profiles...',
-        'Fetching recent posts (last 7 days)...',
-        'Scanning post captions with AI (phase 1)...',
-        'Found 3 relevant mentions...',
-        'Fetching comments for relevant posts (phase 2)...',
-        'Analyzing sentiment and topics...',
-        'Generating actionable insights...',
-      ];
-      let idx = 0;
-      mockIntervalRef.current = setInterval(() => {
-        if (idx < mockSteps.length) {
-          setSteps(prev => [...prev, { text: mockSteps[idx], timestamp: Date.now() }]);
-          setPct(Math.floor(((idx + 1) / mockSteps.length) * 100));
-          idx++;
-        } else {
-          clearInterval(mockIntervalRef.current);
-          setPct(100);
-          // After simulation, create mock results and navigate to dashboard
-          const mockResult = [{
-            profile: 'demo_influencer',
-            posts_scanned: 12,
-            relevant_posts_found: 3,
-            brand_mention_timeline: [
-              {
-                shortcode: 'demo123',
-                url: 'https://instagram.com/p/demo123',
-                caption: 'Loving this new product! #sponsored',
-                likes: 1234,
-                comments_count: 56,
-                llm_classification: { relevant: true, confidence: 'high' },
-                comments: [{ owner: 'user1', text: 'Looks great!', timestamp: new Date().toISOString(), likes: 5 }]
-              }
-            ]
-          }];
-          setStore(prev => ({ ...prev, analysisResults: mockResult }));
-          setTimeout(() => triggerReveal(() => setRoute('dashboard'), true), 1000);
-        }
-      }, 800);
+      console.warn('No jobId found – starting immersive simulation');
+      startSimulation();
       return () => {
-        if (mockIntervalRef.current) clearInterval(mockIntervalRef.current);
+        if (mockIntervalRef.current) clearTimeout(mockIntervalRef.current);
+        if (thinkingTimeoutRef.current) clearTimeout(thinkingTimeoutRef.current);
       };
     }
 
@@ -70,8 +141,7 @@ export default function Loading({ t, setRoute, store, setStore, triggerReveal })
     es.onmessage = (event) => {
       const data = JSON.parse(event.data);
       if (data.type === 'step') {
-        setSteps(prev => [...prev, { text: data.message, timestamp: Date.now() }]);
-        // rough progress estimation
+        addStep(data.message, false);
         setPct(prev => Math.min(95, prev + 3));
       } else if (data.type === 'error') {
         setError(data.message);
@@ -90,38 +160,14 @@ export default function Loading({ t, setRoute, store, setStore, triggerReveal })
 
     es.onerror = (err) => {
       console.error('SSE error, falling back to simulation', err);
-      setSimulating(true);
-      // simulate steps as fallback
-      const fallbackSteps = [
-        'Real-time connection lost – switching to demo mode',
-        'Simulating analysis...',
-        'Please check your backend server for full integration',
-      ];
-      let idx = 0;
-      const fallbackInterval = setInterval(() => {
-        if (idx < fallbackSteps.length) {
-          setSteps(prev => [...prev, { text: fallbackSteps[idx], timestamp: Date.now() }]);
-          setPct(((idx + 1) / fallbackSteps.length) * 100);
-          idx++;
-        } else {
-          clearInterval(fallbackInterval);
-          setPct(100);
-          const mockResult = [{
-            profile: 'demo_fallback',
-            posts_scanned: 5,
-            relevant_posts_found: 1,
-            brand_mention_timeline: []
-          }];
-          setStore(prev => ({ ...prev, analysisResults: mockResult }));
-          setTimeout(() => triggerReveal(() => setRoute('dashboard'), true), 1000);
-        }
-      }, 1000);
+      startSimulation();
       es.close();
     };
 
     return () => {
       if (eventSourceRef.current) eventSourceRef.current.close();
-      if (mockIntervalRef.current) clearInterval(mockIntervalRef.current);
+      if (mockIntervalRef.current) clearTimeout(mockIntervalRef.current);
+      if (thinkingTimeoutRef.current) clearTimeout(thinkingTimeoutRef.current);
     };
   }, [store.jobId, setStore, triggerReveal]);
 
@@ -183,18 +229,20 @@ export default function Loading({ t, setRoute, store, setStore, triggerReveal })
           <p className="text-sm md:text-base text-white/50">{t('loading.lede')}</p>
         </div>
 
-        {/* Chain of thought log */}
+        {/* Chain of thought log with thinking animation */}
         <div className="mt-10 w-full max-w-xl rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-md p-5">
           <div className="font-mono text-[11px] text-white/80 mb-4 flex items-center gap-2">
             <span className="text-brand">›</span>
             <span>Live analysis log</span>
-            {pct < 100 && <span className="caret text-brand ml-1 animate-pulse">▌</span>}
+            {thinking && <span className="animate-pulse text-brand ml-2">thinking 🤔</span>}
+            {pct < 100 && !thinking && <span className="caret text-brand ml-2 animate-pulse">▌</span>}
           </div>
           <div className="space-y-1.5 max-h-44 overflow-y-auto no-scrollbar">
             {steps.map((step, idx) => (
-              <div key={idx} className="flex items-start gap-2 font-mono text-[10px] tracking-[0.1em] text-white/70">
+              <div key={idx} className={`flex items-start gap-2 font-mono text-[10px] tracking-[0.1em] transition-all duration-300 ${step.isThinking ? 'text-brand/80' : 'text-white/70'}`}>
                 <span className="text-brand mt-0.5">●</span>
-                <span>{step.text}</span>
+                <span className="break-words">{step.text}</span>
+                {step.isThinking && <span className="animate-pulse text-brand ml-1">⚡</span>}
               </div>
             ))}
             {steps.length === 0 && (
