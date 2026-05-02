@@ -1,0 +1,106 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,100..900&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  background-color: #020205;
+  color: white;
+  font-family: 'Inter', sans-serif;
+}
+
+/* Remove any fixed custom cursor elements */
+.fixed-cursor {
+  display: none;
+}
+
+/* Curtain transition */
+.reveal-curtain {
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  background: #FF3B2E;
+  z-index: 200;
+  transform: scaleY(0);
+  transform-origin: bottom;
+  transition: transform 0.28s cubic-bezier(0.7, 0, 0.3, 1);
+}
+.reveal-curtain.open {
+  transform: scaleY(1);
+  transform-origin: top;
+}
+
+/* CTA pulse */
+@keyframes ctaPulse {
+  0%, 100% {
+    box-shadow: 0 18px 60px -10px rgba(255,59,46,.75), 0 0 0 1px rgba(255,255,255,.10) inset, 0 0 80px rgba(255,59,46,.25);
+  }
+  50% {
+    box-shadow: 0 22px 70px -10px rgba(255,59,46,.95), 0 0 0 1px rgba(255,255,255,.14) inset, 0 0 110px rgba(255,59,46,.45);
+  }
+}
+.cta-pulse {
+  animation: ctaPulse 3.2s ease-in-out infinite;
+}
+
+/* Title outline */
+.title-outline {
+  -webkit-text-stroke: 1.4px rgba(255,255,255,0.55);
+  color: transparent;
+}
+.title-solid-white {
+  color: white;
+}
+.title-solid-red {
+  color: #FF3B2E;
+}
+
+/* Halo effect */
+.halo {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(140px);
+  pointer-events: none;
+  opacity: 0.55;
+}
+
+/* Page transition */
+@keyframes pageIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.page-in {
+  animation: pageIn 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #0a0a0a;
+}
+::-webkit-scrollbar-thumb {
+  background: #E31E24;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #ff3b42;
+}
+
+/* Blink */
+.blink {
+  animation: blink 1.2s infinite;
+}
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

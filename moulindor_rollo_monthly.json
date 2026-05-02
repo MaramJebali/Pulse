@@ -1,0 +1,13 @@
+{
+  "profile": "gooba_official",
+  "topic": "Rollo snack campaign",
+  "scan_period_days": 30,
+  "scraped_at": "2026-05-02T00:52:22.481630+00:00",
+  "posts_scanned": 0,
+  "relevant_posts_found": 0,
+  "brand_mention_timeline": [],
+  "all_posts_summary": [],
+  "pipeline_notes": [
+    "user_id resolution failed: Could not resolve user_id for @gooba_official. Check your Scrapfly key and credits. If doc_ids changed, update DOC_ID_POST / DOC_ID_USER_POSTS constants."
+  ]
+}
